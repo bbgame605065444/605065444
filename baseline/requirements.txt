@@ -1,0 +1,18 @@
+# SemEval 2026 Task 12: AER Baseline Dependencies
+
+# 基础依赖
+tqdm>=4.60.0
+requests>=2.25.0
+
+# API 模型 (选择性安装)
+openai>=1.0.0
+anthropic>=0.18.0
+
+# 本地模型 (选择性安装)
+torch>=2.0.0
+transformers>=4.35.0
+accelerate>=0.24.0
+bitsandbytes>=0.41.0  # 用于4-bit量化
+
+# 高性能推理 (可选)
+# vllm>=0.2.0
