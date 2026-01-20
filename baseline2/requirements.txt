@@ -1,0 +1,19 @@
+# SemEval 2026 Task 12: AER Baseline 2 Dependencies
+
+# 核心依赖
+torch>=2.0.0
+transformers>=4.35.0
+tqdm>=4.60.0
+
+# UnifiedQA 依赖
+sentencepiece>=0.1.99  # T5 tokenizer
+
+# RoBERTa/BERT 微调依赖
+accelerate>=0.24.0
+bitsandbytes>=0.41.0  # 可选: 量化
+
+# 评估
+scikit-learn>=1.0.0
+
+# 数据处理
+datasets>=2.14.0  # HuggingFace datasets
