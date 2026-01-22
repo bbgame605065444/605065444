@@ -18,106 +18,90 @@
 
 本仓库提供了完整的baseline实验框架，支持多种模型。
 
-### 快速开始
-
 ```bash
-# 1. 克隆数据集
-git clone https://github.com/sooo66/semeval2026-task12-dataset.git
-
-# 2. 安装依赖
-pip install -r baseline/requirements.txt
-
-# 3. 运行baseline
 cd baseline
 python run_baseline.py --model-type openai --model-name gpt-4o-mini --data-split dev
 ```
 
-### 支持的模型
-
-| 模型类型 | 示例 | 说明 |
-|---------|------|------|
-| `openai` | gpt-4o, gpt-4o-mini | 需要 OPENAI_API_KEY |
-| `anthropic` | claude-3-5-sonnet-20241022 | 需要 ANTHROPIC_API_KEY |
-| `huggingface` | Qwen/Qwen2.5-7B-Instruct | 本地GPU运行 |
-| `ollama` | llama3.1:8b | 本地Ollama服务 |
-| `vllm` | meta-llama/Llama-3.1-8B-Instruct | 高性能批量推理 |
+支持: OpenAI, Anthropic, HuggingFace, Ollama, vLLM
 
 ---
 
 ## Baseline 2: 经典研究方法 (UnifiedQA / RoBERTa)
 
-基于现有NLP研究的baseline实现，包含完整的数据预处理流程。
+基于现有NLP研究的baseline实现。
 
-### 参考论文
-- [UnifiedQA: Crossing Format Boundaries with a Single QA System](https://arxiv.org/abs/2005.00700) (EMNLP 2020)
-- [RoBERTa: A Robustly Optimized BERT Pretraining Approach](https://arxiv.org/abs/1907.11692)
-
-### 数据预处理
+参考论文:
+- [UnifiedQA](https://arxiv.org/abs/2005.00700) (EMNLP 2020)
+- [RoBERTa](https://arxiv.org/abs/1907.11692)
 
 ```bash
 cd baseline2
 
-# 预处理数据（生成UnifiedQA和RoBERTa兼容格式）
-python run_baseline2.py preprocess \
-    --dataset-dir ../data/semeval2026-task12-dataset \
-    --output-dir ./processed_data
+# 数据预处理
+python run_baseline2.py preprocess --dataset-dir ../data/semeval2026-task12-dataset
+
+# UnifiedQA (零样本)
+python run_baseline2.py unifiedqa --data-path ./processed_data/dev/unifiedqa.jsonl
+
+# RoBERTa (需要微调)
+python run_baseline2.py roberta --mode train --train-data ./processed_data/train/roberta_mcqa.jsonl
 ```
 
-预处理后生成:
-```
-processed_data/
-├── train/
-│   ├── unifiedqa.jsonl      # UnifiedQA格式
-│   ├── roberta_mcqa.jsonl   # RoBERTa MCQA格式
-│   └── data.json            # HuggingFace格式
-├── dev/
-└── test/
-```
+---
 
-### 方法 1: UnifiedQA (零样本)
+## Baseline 3: 知识图谱增强 (KG + LLM) ⭐ NEW
 
-```bash
-# 使用UnifiedQA-base
-python run_baseline2.py unifiedqa \
-    --data-path ./processed_data/dev/unifiedqa.jsonl \
-    --model-name allenai/unifiedqa-t5-base
+将**知识图谱嵌入**与**大语言模型**结合进行因果推理。
 
-# 使用UnifiedQA-v2 (更强)
-python run_baseline2.py unifiedqa \
-    --data-path ./processed_data/dev/unifiedqa.jsonl \
-    --model-name allenai/unifiedqa-v2-t5-large-1363200
-```
+### 参考论文
+- [TransE](https://papers.nips.cc/paper/2013/hash/1cecc7a77928ca8133fa24680a88d2f9-Abstract.html) - 知识图谱嵌入 (NeurIPS 2013)
+- [ComplEx](https://arxiv.org/abs/1606.06357) - 复数空间嵌入 (ICML 2016)
+- [RotatE](https://arxiv.org/abs/1902.10197) - 旋转嵌入 (ICLR 2019)
+- [COMET-ATOMIC](https://arxiv.org/abs/2010.05953) - 常识知识生成 (EMNLP 2020)
+- [QA-GNN](https://arxiv.org/abs/2104.06378) - KG+LLM QA (NAACL 2021)
 
-可用模型:
-| 模型 | 参数量 | 显存需求 |
-|------|-------|---------|
-| `allenai/unifiedqa-t5-small` | 60M | ~1GB |
-| `allenai/unifiedqa-t5-base` | 220M | ~2GB |
-| `allenai/unifiedqa-t5-large` | 770M | ~4GB |
-| `allenai/unifiedqa-v2-t5-base-1363200` | 220M | ~2GB |
+### 核心组件
 
-### 方法 2: RoBERTa/DeBERTa (需要微调)
-
-```bash
-# 训练
-python run_baseline2.py roberta --mode train \
-    --train-data ./processed_data/train/roberta_mcqa.jsonl \
-    --dev-data ./processed_data/dev/roberta_mcqa.jsonl \
-    --model-name roberta-base \
-    --output-dir ./roberta_output
-
-# 预测
-python run_baseline2.py roberta --mode predict \
-    --data-path ./processed_data/dev/roberta_mcqa.jsonl \
-    --model-name ./roberta_output
-```
-
-推荐模型:
-| 模型 | 说明 |
+| 模块 | 说明 |
 |------|------|
-| `roberta-base` | 通用baseline |
-| `roberta-large` | 更大容量 |
-| `microsoft/deberta-v3-base` | 推荐，效果更好 |
+| `kg_embedding.py` | KG嵌入模型 (TransE, ComplEx, RotatE) |
+| `comet_knowledge.py` | COMET知识生成 |
+| `kg_llm_qa.py` | KG-LLM融合QA |
+
+### 使用方法
+
+```bash
+cd baseline3
+
+# 1. 构建知识图谱 + 训练嵌入
+python run_baseline3.py build-kg \
+    --data-path ../data/semeval2026-task12-dataset/train_data \
+    --output-dir ./kg_output \
+    --train-embedding \
+    --kg-model TransE
+
+# 2. 运行KG增强QA
+python run_baseline3.py qa \
+    --data-path ../data/semeval2026-task12-dataset/dev_data \
+    --fusion prompt \
+    --llm-model gpt-4o-mini
+```
+
+### KG Embedding 详解
+
+详见 [`baseline3/KG_EMBEDDING_DOC.md`](baseline3/KG_EMBEDDING_DOC.md)，包含:
+
+- TransE/ComplEx/RotatE 原理与实现
+- 训练流程与超参数选择
+- 嵌入在QA任务中的应用
+
+### 融合方法
+
+| 方法 | 说明 | 命令 |
+|------|------|------|
+| `prompt` | 将KG知识添加到prompt | `--fusion prompt` |
+| `retrieval` | 从KG检索相关三元组 | `--fusion retrieval` |
 
 ---
 
@@ -133,10 +117,10 @@ python run_baseline2.py roberta --mode predict \
 - 关键信息抽取
 - 多文档融合
 
-### 3. 推理增强
-- 因果图构建
-- 反事实推理
-- 时序推理
+### 3. 知识图谱增强
+- 因果知识图谱构建
+- KG嵌入学习 (TransE, ComplEx, RotatE)
+- COMET常识推理
 
 ### 4. 微调方法
 - LoRA/QLoRA 微调
@@ -156,12 +140,19 @@ python run_baseline2.py roberta --mode predict \
 │   ├── run_baseline.py
 │   └── AER_Baseline_Colab.ipynb
 │
-├── baseline2/                     # Baseline 2: 经典研究方法
-│   ├── preprocessing.py           # 数据预处理
-│   ├── unifiedqa_baseline.py      # UnifiedQA模型
-│   ├── roberta_mcqa_baseline.py   # RoBERTa MCQA模型
-│   ├── run_baseline2.py           # 统一运行脚本
+├── baseline2/                     # Baseline 2: UnifiedQA/RoBERTa
+│   ├── preprocessing.py
+│   ├── unifiedqa_baseline.py
+│   ├── roberta_mcqa_baseline.py
+│   ├── run_baseline2.py
 │   └── AER_Baseline2_Colab.ipynb
+│
+├── baseline3/                     # Baseline 3: KG + LLM ⭐
+│   ├── kg_embedding.py            # TransE/ComplEx/RotatE
+│   ├── comet_knowledge.py         # COMET知识生成
+│   ├── kg_llm_qa.py               # KG-LLM融合
+│   ├── run_baseline3.py           # 统一运行脚本
+│   └── KG_EMBEDDING_DOC.md        # 技术文档
 │
 └── README.md
 ```
@@ -186,5 +177,8 @@ python run_baseline2.py roberta --mode predict \
 
 ### 相关研究
 - [Awesome-LLM-Causal-Reasoning](https://github.com/chendl02/Awesome-LLM-causal-reasoning) - 因果推理论文集
+- [KG-LLM-Papers](https://github.com/zjukg/KG-LLM-Papers) - KG+LLM论文集
+- [OpenKE](https://github.com/thunlp/OpenKE) - 知识图谱嵌入工具包
+- [TorchKGE](https://github.com/torchkge-team/torchkge) - PyTorch KG嵌入库
+- [COMET-ATOMIC 2020](https://github.com/allenai/comet-atomic-2020) - 常识知识生成
 - [UnifiedQA](https://github.com/allenai/unifiedqa) - AllenAI统一问答模型
-- [HuggingFace Multiple Choice](https://huggingface.co/docs/transformers/tasks/multiple_choice) - 多选题任务教程

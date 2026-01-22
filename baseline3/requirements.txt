@@ -1,0 +1,19 @@
+# SemEval 2026 Task 12: AER Baseline 3 Dependencies
+# KG-Enhanced LLM QA
+
+# 核心依赖
+torch>=2.0.0
+numpy>=1.21.0
+tqdm>=4.60.0
+
+# LLM API
+openai>=1.0.0
+anthropic>=0.18.0
+
+# COMET 知识生成 (可选)
+transformers>=4.35.0
+sentencepiece>=0.1.99
+
+# KG 嵌入 (可选，用于更高级的方法)
+# torchkge>=0.17.0  # TorchKGE库
+# pykg2vec>=0.0.2   # 另一个KG嵌入库
